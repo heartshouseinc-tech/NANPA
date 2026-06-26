@@ -1,0 +1,961 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>🏮 NANPA ROOM</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+:root{
+  --rose:#be123c;--violet:#7c3aed;--teal:#0f766e;--gold:#d97706;
+  --indigo:#3730a3;--bg:#0f0f1a;--bg2:#1a1a2e;--surface:#16213e;
+  --surface2:#1a1a35;--border:#2a2a4a;--txt:#f0f0ff;--txt2:#a0a0c0;
+  --txt3:#606080;--r-sm:6px;--r-md:10px;--r-lg:14px;--r-full:999px;
+  --fd:'Hiragino Mincho ProN',serif;
+}
+body{background:var(--bg);color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,sans-serif;
+  height:100dvh;display:flex;flex-direction:column;overflow:hidden;}
+
+/* ── 画面切り替え ── */
+.screen{display:none;flex:1;flex-direction:column;overflow:hidden;}
+.screen.active{display:flex;}
+
+/* ── スプラッシュ ── */
+#splash{background:linear-gradient(135deg,#0f0f1a,#1a0a2e);align-items:center;justify-content:center;}
+.splash-logo{font-size:3.5rem;margin-bottom:.5rem;}
+.splash-title{font-family:var(--fd);font-size:2rem;font-weight:700;
+  background:linear-gradient(135deg,#be123c,#7c3aed,#d97706);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:.3rem;}
+.splash-sub{font-size:.75rem;color:var(--txt3);letter-spacing:.1em;}
+
+/* ── 認証 ── */
+#auth-screen{background:var(--bg);padding:1.5rem;overflow-y:auto;}
+.auth-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:1.25rem;max-width:400px;margin:0 auto;}
+.auth-title{font-size:1.1rem;font-weight:700;color:var(--txt);margin-bottom:1rem;text-align:center;}
+.inp{width:100%;padding:.65rem .85rem;border-radius:var(--r-md);border:1.5px solid var(--border);
+  background:var(--surface2);color:var(--txt);font-size:.82rem;outline:none;margin-bottom:.55rem;}
+.inp:focus{border-color:var(--rose);}
+.btn{width:100%;padding:.75rem;border-radius:var(--r-full);border:none;font-size:.82rem;font-weight:700;cursor:pointer;}
+.btn-primary{background:linear-gradient(135deg,var(--rose),var(--violet));color:#fff;}
+.btn-secondary{background:var(--surface2);border:1.5px solid var(--border);color:var(--txt2);margin-top:.4rem;}
+.btn-google{background:#fff;color:#333;border:1.5px solid #ddd;margin-top:.4rem;display:flex;align-items:center;justify-content:center;gap:.5rem;}
+
+/* ── ホーム（ルーム一覧） ── */
+#home-screen{background:var(--bg);}
+.home-header{padding:.75rem .85rem;background:var(--surface);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.home-title{font-size:1rem;font-weight:700;color:var(--txt);}
+.home-user{font-size:.65rem;color:var(--txt3);}
+.home-tabs{display:flex;gap:0;border-bottom:1px solid var(--border);flex-shrink:0;background:var(--surface);}
+.htab{flex:1;padding:.6rem .3rem;font-size:.68rem;font-weight:600;color:var(--txt3);background:none;
+  border:none;cursor:pointer;border-bottom:2px solid transparent;}
+.htab.on{color:var(--rose);border-bottom-color:var(--rose);}
+.room-list{flex:1;overflow-y:auto;padding:.5rem .75rem;}
+.room-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);
+  padding:.7rem .85rem;margin-bottom:.4rem;cursor:pointer;active:opacity:.75;}
+.room-card:active{opacity:.75;}
+.room-card-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:.2rem;}
+.room-name{font-size:.88rem;font-weight:700;color:var(--txt);}
+.room-badge{font-size:.58rem;padding:.18rem .45rem;border-radius:var(--r-full);font-weight:700;}
+.badge-nanpa{background:var(--rose)20;color:var(--rose);}
+.badge-open{background:#10b98120;color:#10b981;}
+.badge-full{background:var(--txt3)20;color:var(--txt3);}
+.room-meta{font-size:.6rem;color:var(--txt3);}
+.fab{position:fixed;right:1rem;bottom:1.5rem;width:52px;height:52px;border-radius:50%;
+  background:linear-gradient(135deg,var(--rose),var(--violet));border:none;color:#fff;
+  font-size:1.5rem;cursor:pointer;box-shadow:0 4px 20px rgba(190,18,60,.4);z-index:10;}
+
+/* ── ルーム作成モーダル ── */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:100;
+  align-items:flex-end;}
+.modal-overlay.open{display:flex;}
+.modal-sheet{background:var(--bg2);border-radius:20px 20px 0 0;padding:1.25rem;width:100%;
+  max-height:85vh;overflow-y:auto;}
+.modal-title{font-size:1rem;font-weight:700;color:var(--txt);margin-bottom:1rem;text-align:center;}
+.field-label{font-size:.65rem;color:var(--txt3);margin-bottom:.25rem;display:block;}
+.field-group{margin-bottom:.65rem;}
+.row-btns{display:grid;grid-template-columns:1fr 1fr;gap:.4rem;}
+.sel-btn{padding:.5rem;border-radius:var(--r-md);border:1.5px solid var(--border);
+  background:var(--surface2);color:var(--txt2);font-size:.65rem;cursor:pointer;text-align:center;}
+.sel-btn.on{border-color:var(--rose);background:var(--rose)15;color:var(--rose);}
+.num-row{display:flex;align-items:center;gap:.5rem;}
+.num-btn{width:30px;height:30px;border-radius:50%;border:1px solid var(--border);
+  background:var(--surface2);color:var(--txt);font-size:1rem;cursor:pointer;}
+.num-val{font-size:.85rem;font-weight:700;color:var(--rose);min-width:30px;text-align:center;}
+
+/* ── チャット画面 ── */
+#chat-screen{background:var(--bg);}
+.chat-header{padding:.6rem .85rem;background:var(--surface);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:.55rem;flex-shrink:0;}
+.back-btn{background:none;border:none;color:var(--txt3);font-size:1.1rem;cursor:pointer;padding:.2rem;}
+.chat-room-info{flex:1;}
+.chat-room-name{font-size:.92rem;font-weight:700;color:var(--txt);}
+.chat-room-meta{font-size:.58rem;color:var(--txt3);}
+.member-avatars{display:flex;gap:-4px;}
+.avatar{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;
+  justify-content:center;font-size:.72rem;font-weight:700;border:2px solid var(--bg);margin-left:-4px;}
+
+/* 女性プロフィールバー */
+.women-bar{display:flex;gap:.3rem;padding:.4rem .75rem;background:var(--surface2);
+  border-bottom:1px solid var(--border);overflow-x:auto;flex-shrink:0;}
+.woman-chip{flex-shrink:0;padding:.3rem .55rem;border-radius:var(--r-full);
+  border:1.5px solid var(--rose)30;background:var(--rose)10;cursor:pointer;}
+.woman-chip-name{font-size:.62rem;font-weight:700;color:var(--rose);}
+.woman-chip-status{font-size:.52rem;color:var(--txt3);}
+
+/* メッセージエリア */
+.msg-area{flex:1;overflow-y:auto;padding:.75rem .75rem;display:flex;flex-direction:column;gap:.5rem;}
+.msg-row{display:flex;align-items:flex-end;gap:.4rem;}
+.msg-row.me{justify-content:flex-end;}
+.msg-row.woman{justify-content:flex-start;}
+.msg-row.system{justify-content:center;}
+.msg-avatar{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;
+  justify-content:center;font-size:.75rem;font-weight:700;flex-shrink:0;}
+.msg-content{max-width:75%;}
+.msg-name{font-size:.55rem;color:var(--txt3);margin-bottom:.12rem;}
+.bubble{padding:.55rem .78rem;border-radius:14px;font-size:.76rem;line-height:1.65;}
+.bubble-me{background:linear-gradient(135deg,var(--rose),var(--violet));color:#fff;
+  border-radius:14px 14px 4px 14px;}
+.bubble-woman{background:var(--surface);border:1.5px solid var(--rose)30;color:var(--txt);
+  border-radius:4px 14px 14px 14px;}
+.bubble-member{background:var(--surface2);border:1px solid var(--border);color:var(--txt);
+  border-radius:4px 14px 14px 14px;}
+.bubble-system{background:var(--border)50;color:var(--txt3);font-size:.62rem;
+  padding:.28rem .65rem;border-radius:var(--r-full);}
+.bubble-coach{background:var(--teal)15;border:1px solid var(--teal)40;color:var(--teal);
+  font-size:.65rem;padding:.38rem .65rem;border-radius:var(--r-md);margin-top:.15rem;}
+.msg-time{font-size:.5rem;color:var(--txt3);margin-top:.1rem;text-align:right;}
+
+/* なあシステム */
+.typing-bar{padding:.28rem .85rem;background:var(--surface2);border-top:1px solid var(--border);
+  font-size:.6rem;color:var(--txt3);min-height:24px;flex-shrink:0;}
+.typing-user{color:var(--gold);font-weight:700;}
+
+/* 入力エリア */
+.input-bar{padding:.5rem .75rem;background:var(--surface);border-top:1px solid var(--border);
+  display:flex;gap:.35rem;align-items:flex-end;flex-shrink:0;}
+.chat-inp{flex:1;padding:.48rem .7rem;border-radius:12px;border:1.5px solid var(--border);
+  background:var(--surface2);color:var(--txt);font-family:inherit;font-size:.78rem;
+  resize:none;min-height:38px;max-height:100px;outline:none;line-height:1.5;}
+.chat-inp:focus{border-color:var(--rose);}
+.send-btn{padding:.48rem .82rem;border-radius:var(--r-full);
+  background:linear-gradient(135deg,var(--rose),var(--violet));
+  border:none;color:#fff;font-size:.72rem;font-weight:700;cursor:pointer;flex-shrink:0;}
+.send-btn:disabled{opacity:.4;}
+@keyframes td{0%,80%,100%{transform:scale(0)}40%{transform:scale(1)}}
+
+/* ── 女性アバター ── */
+.woman-face{width:38px;height:38px;border-radius:50%;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  position:relative;overflow:hidden;border:2px solid var(--rose)40;}
+.woman-face-inner{font-size:1.4rem;line-height:1;}
+.mouth{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);
+  width:10px;height:5px;border-radius:0 0 5px 5px;
+  background:rgba(255,255,255,.7);transition:height .1s;}
+.mouth.talking{animation:talk .3s infinite alternate;}
+@keyframes talk{0%{height:2px;border-radius:0 0 2px 2px;}100%{height:7px;border-radius:0 0 6px 6px;}}
+.woman-chip-avatar{font-size:1.3rem;display:block;margin-bottom:.1rem;}
+/* タイピングドット */
+@keyframes td{0%,80%,100%{transform:scale(0)}40%{transform:scale(1)}}
+.tdot{display:inline-block;width:7px;height:7px;border-radius:50%;
+  background:var(--rose)80;animation:td .9s infinite;}
+.tdot:nth-child(2){animation-delay:.15s;}
+.tdot:nth-child(3){animation-delay:.3s;}
+
+/* ── メッセージアニメーション ── */
+.msg-row{animation:msgIn .25s ease-out;}
+@keyframes msgIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+.msg-row.me{animation:msgInRight .25s ease-out;}
+@keyframes msgInRight{from{opacity:0;transform:translateX(12px);}to{opacity:1;transform:translateX(0);}}
+/* アバター画像 */
+.avatar-wrap img{object-fit:cover;}
+.avatar-wrap{background:linear-gradient(135deg,#f0d0e8,#d0d0f8);}
+/* 削除ボタン */
+.room-card{transition:transform .12s;}
+.room-card:active{transform:scale(.98);}
+</style>
+</head>
+<body>
+
+<!-- スプラッシュ -->
+<div class="screen active" id="splash">
+  <div class="splash-logo">🏮</div>
+  <div class="splash-title">NANPA ROOM</div>
+  <div class="splash-sub">MOTER MAX × Firebase × Gemini 2.5 Flash</div>
+</div>
+
+<!-- 認証 -->
+<div class="screen" id="auth-screen">
+  <div style="padding:2rem 1rem 1rem;text-align:center">
+    <div style="font-size:2rem;margin-bottom:.35rem">🏮</div>
+    <div style="font-family:var(--fd);font-size:1.3rem;font-weight:700;color:var(--rose);margin-bottom:.25rem">NANPA ROOM</div>
+    <div style="font-size:.68rem;color:var(--txt3);margin-bottom:1.5rem">ログインして練習を始める</div>
+  </div>
+  <div class="auth-card">
+    <div id="auth-error" style="font-size:.68rem;color:var(--rose);margin-bottom:.5rem;display:none"></div>
+    <input class="inp" id="auth-email" type="email" placeholder="メールアドレス">
+    <input class="inp" id="auth-pass" type="password" placeholder="パスワード">
+    <button class="btn btn-primary" onclick="doLogin()">ログイン</button>
+    <button class="btn btn-google" onclick="doGoogleLogin()">
+      <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+      Googleでログイン
+    </button>
+    <button class="btn btn-secondary" onclick="showRegister()">新規登録</button>
+  </div>
+  <div id="register-form" style="display:none;margin-top:.75rem" class="auth-card">
+    <div class="auth-title">新規登録</div>
+    <input class="inp" id="reg-name" placeholder="ニックネーム">
+    <input class="inp" id="reg-email" type="email" placeholder="メールアドレス">
+    <input class="inp" id="reg-pass" type="password" placeholder="パスワード（6文字以上）">
+    <button class="btn btn-primary" onclick="doRegister()">登録する</button>
+  </div>
+</div>
+
+<!-- ホーム（ルーム一覧） -->
+<div class="screen" id="home-screen">
+  <div class="home-header">
+    <div>
+      <div class="home-title">🏮 NANPA ROOM</div>
+      <div class="home-user" id="home-user-name">Loading...</div>
+    </div>
+    <button onclick="doLogout()" style="background:none;border:1px solid var(--border);color:var(--txt3);padding:.3rem .65rem;border-radius:var(--r-full);font-size:.62rem;cursor:pointer">ログアウト</button>
+  </div>
+  <div class="home-tabs">
+    <button class="htab on" onclick="switchHomeTab('rooms',this)">🏮 ルーム一覧</button>
+    <button class="htab" onclick="switchHomeTab('women',this)">👩 今日の女性</button>
+    <button class="htab" onclick="switchHomeTab('ranking',this)">🏆 ランキング</button>
+  </div>
+  <div id="ht-rooms" class="room-list">
+    <div style="font-size:.65rem;color:var(--txt3);text-align:center;padding:2rem">ルームを読み込み中...</div>
+  </div>
+  <div id="ht-women" style="display:none;flex:1;overflow-y:auto;padding:.5rem .75rem"></div>
+  <div id="ht-ranking" style="display:none;flex:1;overflow-y:auto;padding:.5rem .75rem"></div>
+  <button class="fab" onclick="openCreateModal()">＋</button>
+</div>
+
+<!-- ルーム作成モーダル -->
+<div class="modal-overlay" id="create-modal" onclick="if(event.target===this)closeCreateModal()">
+  <div class="modal-sheet">
+    <div class="modal-title">🏮 ナンパルームを作成</div>
+    <div class="field-group">
+      <label class="field-label">ルーム名</label>
+      <input class="inp" id="new-room-name" placeholder="例：渋谷ナンパ道場">
+    </div>
+    <div class="field-group">
+      <label class="field-label">モード</label>
+      <div class="row-btns">
+        <button class="sel-btn on" id="mode-nanpa" onclick="selectRoomMode('nanpa',this)">🏮 ナンパ</button>
+        <button class="sel-btn" id="mode-date" onclick="selectRoomMode('date',this)">💕 デート練習</button>
+        <button class="sel-btn" id="mode-line" onclick="selectRoomMode('line',this)">📱 LINE練習</button>
+        <button class="sel-btn" id="mode-group" onclick="selectRoomMode('group',this)">👥 グループナンパ</button>
+      </div>
+    </div>
+    <div class="field-group">
+      <label class="field-label">参加人数（最大）</label>
+      <div class="num-row">
+        <button class="num-btn" onclick="changeNum('members',-1)">−</button>
+        <div class="num-val" id="num-members">2</div>
+        <button class="num-btn" onclick="changeNum('members',1)">＋</button>
+        <div style="font-size:.65rem;color:var(--txt3)">人</div>
+      </div>
+    </div>
+    <div class="field-group">
+      <label class="field-label">女性AI人数（デフォルト：参加人数と同数）</label>
+      <div class="num-row">
+        <button class="num-btn" onclick="changeNum('women',-1)">−</button>
+        <div class="num-val" id="num-women">2</div>
+        <button class="num-btn" onclick="changeNum('women',1)">＋</button>
+        <div style="font-size:.65rem;color:var(--txt3)">人</div>
+      </div>
+      <div style="font-size:.58rem;color:var(--txt3);margin-top:.25rem">* デフォルトは参加人数と同数</div>
+    </div>
+    <div class="field-group">
+      <label class="field-label">シチュエーション</label>
+      <select class="inp" id="new-room-situation">
+        <option value="カフェで隣の席">カフェで隣の席</option>
+        <option value="バーで隣">バーで隣</option>
+        <option value="電車で立ちっぱなし">電車で立ちっぱなし</option>
+        <option value="雨宿り">雨宿り</option>
+        <option value="深夜のコンビニ">深夜のコンビニ</option>
+        <option value="居酒屋">居酒屋</option>
+        <option value="クラブ">クラブ</option>
+        <option value="花火大会">花火大会</option>
+        <option value="公園のベンチ">公園のベンチ</option>
+        <option value="フリー（指定なし）">フリー（指定なし）</option>
+      </select>
+    </div>
+    <button class="btn btn-primary" onclick="createRoom()" style="margin-top:.5rem">🏮 ルームを作成する</button>
+    <button class="btn btn-secondary" onclick="closeCreateModal()">キャンセル</button>
+  </div>
+</div>
+
+<!-- チャット画面 -->
+<div class="screen" id="chat-screen">
+  <div class="chat-header">
+    <button class="back-btn" onclick="leaveChat()">←</button>
+    <div class="chat-room-info">
+      <div class="chat-room-name" id="chat-room-name">ルーム名</div>
+      <div class="chat-room-meta" id="chat-room-meta">読み込み中...</div>
+    </div>
+    <div id="chat-members-bar" style="display:flex;gap:.2rem"></div>
+  </div>
+  <div class="women-bar" id="women-bar"></div>
+  <div class="msg-area" id="msg-area"></div>
+  <div class="typing-bar" id="typing-bar"></div>
+  <div class="input-bar">
+    <textarea class="chat-inp" id="chat-inp" rows="1"
+      placeholder="メッセージを入力（Enterで送信）"
+      oninput="onChatInput(this)"
+      onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMsg()}"></textarea>
+    <button class="send-btn" id="send-btn" onclick="sendMsg()" disabled>送信</button>
+  </div>
+</div>
+
+<script type="module">
+import{initializeApp}from'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import{getAuth,signInWithEmailAndPassword,signInWithPopup,createUserWithEmailAndPassword,
+  signOut,onAuthStateChanged,updateProfile,GoogleAuthProvider}
+  from'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+import{getFirestore,collection,doc,addDoc,setDoc,getDoc,getDocs,
+  onSnapshot,query,orderBy,limit,serverTimestamp,updateDoc,deleteDoc,where}
+  from'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+
+const firebaseConfig={
+  apiKey:"AIzaSyCVk2miG5TK1ffTofXLh0hHgeSbOvmIgZ8",
+  authDomain:"kensetsu-nippo-842a2.firebaseapp.com",
+  projectId:"kensetsu-nippo-842a2",
+  storageBucket:"kensetsu-nippo-842a2.firebasestorage.app",
+  messagingSenderId:"702880974315",
+  appId:"1:702880974315:web:985321dc9180046629c5ae"
+};
+const app=initializeApp(firebaseConfig);
+const auth=getAuth(app);
+const db=getFirestore(app);
+const gProvider=new GoogleAuthProvider();
+
+// HeartsHouse API
+const FUNC_BASE=(location.hostname==='localhost'||location.hostname==='127.0.0.1')
+  ?'http://localhost:5001/kensetsu-nippo-842a2/us-central1'
+  :'https://us-central1-kensetsu-nippo-842a2.cloudfunctions.net';
+const HH_KEY='HeartsHouse2026Key';
+
+async function callAI(system,prompt,maxT=800){
+  // system_overrideが効かない場合はpromptに組み込む
+  const fullPrompt=system
+    ?'【あなたへの指示】\n'+system+'\n\n【ユーザーの発言】\n'+prompt
+    :prompt;
+  const r=await fetch(FUNC_BASE+'/askAI',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','x-access-key':HH_KEY},
+    body:JSON.stringify({prompt:fullPrompt,model:'gemini-2.5-flash',mode:'normal'})
+  });
+  const d=await r.json();
+  return d?.data?.text||d?.candidates?.[0]?.content?.parts?.[0]?.text||d?.text||'';
+}
+
+// ── アプリ状態 ──
+const A={
+  user:null,userDoc:null,
+  currentRoom:null,currentRoomData:null,
+  rooms:[],
+  msgsUnsub:null,membersUnsub:null,typingUnsub:null,roomsUnsub:null,
+  roomMode:'nanpa',roomMembers:0,roomWomen:2,
+  womenAssigned:[],
+  sending:false,
+  typingTimer:null,
+};
+
+// ── WOMEN_SEEDS（50人） ──
+const WOMEN_SEEDS=[
+  {id:1,name:'あかり',age:22,blood:'A',mbti:'ENFP',cycleDay:7,star:'おひつじ座'},
+  {id:2,name:'みさき',age:25,blood:'O',mbti:'ISFJ',cycleDay:14,star:'おうし座'},
+  {id:3,name:'ゆい',age:23,blood:'B',mbti:'ENTP',cycleDay:21,star:'ふたご座'},
+  {id:4,name:'りな',age:27,blood:'AB',mbti:'INTJ',cycleDay:3,star:'かに座'},
+  {id:5,name:'はな',age:21,blood:'A',mbti:'INFP',cycleDay:28,star:'しし座'},
+  {id:6,name:'さくら',age:24,blood:'O',mbti:'ESFP',cycleDay:10,star:'おとめ座'},
+  {id:7,name:'あやか',age:26,blood:'B',mbti:'ISTJ',cycleDay:17,star:'てんびん座'},
+  {id:8,name:'ことね',age:22,blood:'A',mbti:'ENFJ',cycleDay:5,star:'さそり座'},
+  {id:9,name:'まい',age:28,blood:'O',mbti:'INTP',cycleDay:22,star:'いて座'},
+  {id:10,name:'つばさ',age:23,blood:'AB',mbti:'ESTP',cycleDay:12,star:'やぎ座'},
+  {id:11,name:'のぞみ',age:25,blood:'A',mbti:'INFJ',cycleDay:19,star:'みずがめ座'},
+  {id:12,name:'ももか',age:21,blood:'B',mbti:'ESFJ',cycleDay:8,star:'うお座'},
+  {id:13,name:'れな',age:29,blood:'O',mbti:'ENTJ',cycleDay:25,star:'おひつじ座'},
+  {id:14,name:'しおり',age:24,blood:'A',mbti:'ISFP',cycleDay:15,star:'おうし座'},
+  {id:15,name:'なつき',age:22,blood:'AB',mbti:'ESTJ',cycleDay:2,star:'ふたご座'},
+  {id:16,name:'あい',age:26,blood:'O',mbti:'ENFP',cycleDay:20,star:'かに座'},
+  {id:17,name:'かな',age:23,blood:'B',mbti:'INTJ',cycleDay:9,star:'しし座'},
+  {id:18,name:'みお',age:27,blood:'A',mbti:'INFP',cycleDay:26,star:'おとめ座'},
+  {id:19,name:'ひなた',age:21,blood:'O',mbti:'ESTP',cycleDay:13,star:'てんびん座'},
+  {id:20,name:'えみ',age:25,blood:'AB',mbti:'ISFJ',cycleDay:4,star:'さそり座'},
+  {id:21,name:'きょうか',age:24,blood:'A',mbti:'ENFJ',cycleDay:18,star:'いて座'},
+  {id:22,name:'ちはる',age:28,blood:'B',mbti:'INTP',cycleDay:27,star:'やぎ座'},
+  {id:23,name:'りお',age:22,blood:'O',mbti:'ESFP',cycleDay:6,star:'みずがめ座'},
+  {id:24,name:'まなみ',age:26,blood:'A',mbti:'ISTJ',cycleDay:23,star:'うお座'},
+  {id:25,name:'ゆうな',age:23,blood:'AB',mbti:'ENTP',cycleDay:11,star:'おひつじ座'},
+  {id:26,name:'あずさ',age:25,blood:'O',mbti:'INFJ',cycleDay:16,star:'おうし座'},
+  {id:27,name:'せな',age:21,blood:'B',mbti:'ESFJ',cycleDay:1,star:'ふたご座'},
+  {id:28,name:'ひより',age:27,blood:'A',mbti:'ENTJ',cycleDay:24,star:'かに座'},
+  {id:29,name:'もも',age:22,blood:'O',mbti:'ISFP',cycleDay:7,star:'しし座'},
+  {id:30,name:'ことみ',age:24,blood:'AB',mbti:'ESTJ',cycleDay:20,star:'おとめ座'},
+  {id:31,name:'るか',age:26,blood:'A',mbti:'ENFP',cycleDay:3,star:'てんびん座'},
+  {id:32,name:'みゆ',age:23,blood:'B',mbti:'INTJ',cycleDay:17,star:'さそり座'},
+  {id:33,name:'あんな',age:28,blood:'O',mbti:'INFP',cycleDay:10,star:'いて座'},
+  {id:34,name:'このは',age:21,blood:'A',mbti:'ESTP',cycleDay:25,star:'やぎ座'},
+  {id:35,name:'ありさ',age:25,blood:'AB',mbti:'ISFJ',cycleDay:14,star:'みずがめ座'},
+  {id:36,name:'のの',age:22,blood:'O',mbti:'ENFJ',cycleDay:8,star:'うお座'},
+  {id:37,name:'ゆきな',age:27,blood:'B',mbti:'INTP',cycleDay:21,star:'おひつじ座'},
+  {id:38,name:'はるか',age:24,blood:'A',mbti:'ESFP',cycleDay:5,star:'おうし座'},
+  {id:39,name:'なな',age:23,blood:'O',mbti:'ISTJ',cycleDay:28,star:'ふたご座'},
+  {id:40,name:'つき',age:26,blood:'AB',mbti:'ENTP',cycleDay:12,star:'かに座'},
+  {id:41,name:'いくみ',age:22,blood:'A',mbti:'INFJ',cycleDay:19,star:'しし座'},
+  {id:42,name:'みれい',age:25,blood:'B',mbti:'ESFJ',cycleDay:6,star:'おとめ座'},
+  {id:43,name:'さな',age:21,blood:'O',mbti:'ENTJ',cycleDay:23,star:'てんびん座'},
+  {id:44,name:'ほのか',age:29,blood:'A',mbti:'ISFP',cycleDay:15,star:'さそり座'},
+  {id:45,name:'ちさと',age:24,blood:'AB',mbti:'ESTJ',cycleDay:2,star:'いて座'},
+  {id:46,name:'らん',age:23,blood:'O',mbti:'ENFP',cycleDay:27,star:'やぎ座'},
+  {id:47,name:'みか',age:27,blood:'B',mbti:'INTJ',cycleDay:9,star:'みずがめ座'},
+  {id:48,name:'こころ',age:22,blood:'A',mbti:'INFP',cycleDay:16,star:'うお座'},
+  {id:49,name:'ゆめ',age:26,blood:'O',mbti:'ESTP',cycleDay:4,star:'おひつじ座'},
+  {id:50,name:'あおい',age:28,blood:'AB',mbti:'ISFJ',cycleDay:22,star:'おうし座'},
+];
+
+// DiceBear アバター URL生成
+function getAvatarUrl(name,style='avataaars'){
+  // avataaars=アニメ風, micah=シンプル顔, lorelei=女性イラスト
+  const seed=encodeURIComponent(name);
+  return'https://api.dicebear.com/7.x/'+style+'/svg?seed='+seed
+    +'&backgroundColor=ffd5dc,ffdfbf,d1d4f9,c0aede,b6e3f4'
+    +'&backgroundType=gradientLinear';
+}
+
+function getAvatarImg(name,size,talking){
+  size=size||38;talking=talking||false;
+  var url=getAvatarUrl(name,'lorelei');
+  var html='<div class="avatar-wrap" style="width:'+size+'px;height:'+size+'px;'
+    +'border-radius:50%;overflow:hidden;flex-shrink:0;'
+    +'border:2px solid rgba(190,18,60,.25);position:relative;background:#f0f0ff">';
+  html+='<img src="'+url+'" width="'+size+'" height="'+size
+    +'" style="border-radius:50%;display:block;object-fit:cover">';
+  if(talking){
+    html+='<div class="mouth talking" style="position:absolute;bottom:4px;left:50%;transform:translateX(-50%)"></div>';
+  }
+  html+='</div>';
+  return html;
+}
+
+function getAvatarImgStr(name,size,talking){
+  return getAvatarImg(name,size||38,talking||false);
+}
+
+function getPhase(d){
+  if(d<=5)return{emoji:'🌊',label:'月経期',e:2};
+  if(d<=13)return{emoji:'🌱',label:'卵胞期',e:8};
+  if(d<=16)return{emoji:'🌸',label:'排卵期',e:9};
+  if(d<=21)return{emoji:'🌙',label:'黄体期前',e:6};
+  if(d<=25)return{emoji:'🌙',label:'黄体期後',e:4};
+  return{emoji:'⛈',label:'PMS期',e:2};
+}
+
+// ── 画面切り替え ──
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+// ── 認証 ──
+onAuthStateChanged(auth,async user=>{
+  if(user){
+    A.user=user;
+    const snap=await getDoc(doc(db,'users',user.uid));
+    A.userDoc=snap.exists()?snap.data():{name:user.displayName||user.email};
+    // moter-finalからのLocalStorage連携
+    try{
+      const mu=localStorage.getItem('moterUser');
+      if(mu){
+        const moterData=JSON.parse(mu);
+        if(moterData.name&&!A.userDoc.name){
+          A.userDoc={...A.userDoc,...moterData};
+        }
+        // プロフィール表示に反映
+        if(moterData.mbti||moterData.blood){
+          A.moterProfile=moterData;
+        }
+      }
+    }catch(e){}
+    const moterInfo=A.moterProfile?(' / '+A.moterProfile.mbti+' '+A.moterProfile.blood):'';
+    document.getElementById('home-user-name').textContent=
+      (A.userDoc.name||user.email)+'さん'+moterInfo;
+    showScreen('home-screen');
+    loadRooms();
+  }else{
+    A.user=null;
+    showScreen('auth-screen');
+  }
+});
+
+window.doLogin=async()=>{
+  const email=document.getElementById('auth-email').value;
+  const pass=document.getElementById('auth-pass').value;
+  const errEl=document.getElementById('auth-error');
+  try{
+    await signInWithEmailAndPassword(auth,email,pass);
+  }catch(e){
+    errEl.textContent=e.message;errEl.style.display='block';
+  }
+};
+
+window.doGoogleLogin=async()=>{
+  try{await signInWithPopup(auth,gProvider);}catch(e){console.error(e);}
+};
+
+window.showRegister=()=>{
+  document.getElementById('register-form').style.display='block';
+};
+
+window.doRegister=async()=>{
+  const name=document.getElementById('reg-name').value;
+  const email=document.getElementById('reg-email').value;
+  const pass=document.getElementById('reg-pass').value;
+  try{
+    const cred=await createUserWithEmailAndPassword(auth,email,pass);
+    await updateProfile(cred.user,{displayName:name});
+    await setDoc(doc(db,'users',cred.user.uid),{name,email,createdAt:serverTimestamp()});
+  }catch(e){alert(e.message);}
+};
+
+window.doLogout=()=>signOut(auth);
+
+// ── ホーム ──
+window.switchHomeTab=(tab,btn)=>{
+  ['rooms','women','ranking'].forEach(t=>{
+    const el=document.getElementById('ht-'+t);
+    if(el)el.style.display=t===tab?'flex':'none';
+  });
+  document.querySelectorAll('.htab').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  if(tab==='women')renderHomeWomen();
+  if(tab==='ranking')renderRanking();
+};
+
+function loadRooms(){
+  if(A.roomsUnsub)A.roomsUnsub();
+  const q=query(collection(db,'nanpa_rooms'),orderBy('lastAt','desc'),limit(30));
+  A.roomsUnsub=onSnapshot(q,snap=>{
+    A.rooms=snap.docs.map(d=>({id:d.id,...d.data()}));
+    renderRoomList();
+  });
+}
+
+function renderRoomList(){
+  const el=document.getElementById('ht-rooms');
+  if(!el)return;
+  if(A.rooms.length===0){
+    el.innerHTML='<div style="text-align:center;padding:2rem;color:var(--txt3);font-size:.72rem">まだルームがありません<br>＋ボタンで作成してください</div>';
+    return;
+  }
+  el.innerHTML=A.rooms.map(function(r){
+    var isFull=r.memberCount>=(r.maxMembers||4);
+    var modeMap={nanpa:'🏮',date:'💕',line:'📱',group:'👥'};
+    var modeEmoji=modeMap[r.mode]||'🏮';
+    var isOwner=A.user&&r.createdBy===A.user.uid;
+    var rid=r.id;
+    var html='<div class="room-card">';
+    html+='<div class="room-card-top" onclick="openRoom(this.dataset.rid)" data-rid="'+rid+'" style="cursor:pointer">';
+    html+='<div class="room-name">'+modeEmoji+' '+(r.name||'名前なし')+'</div>';
+    html+='<span class="room-badge '+(isFull?'badge-full':'badge-open')+'">'+(isFull?'満員':'参加可')+'</span>';
+    html+='</div>';
+    html+='<div class="room-meta" onclick="openRoom(this.dataset.rid)" data-rid="'+rid+'" style="cursor:pointer">';
+    html+=(r.situation||'')+' • 参加 '+(r.memberCount||0)+'/'+(r.maxMembers||4)+'人 • 女性AI '+(r.womenCount||2)+'人';
+    if(r.lastMessage)html+='<br>最新: '+r.lastMessage.slice(0,20);
+    html+='</div>';
+    if(isOwner){
+      html+='<div style="text-align:right;margin-top:.35rem">';
+      html+='<button onclick="deleteRoom(this.dataset.rid,event)" data-rid="'+rid+'" ';
+      html+='style="padding:.22rem .6rem;border-radius:var(--r-full);border:1px solid #ef444440;background:#ef444415;color:#ef4444;font-size:.6rem;cursor:pointer">🗑 削除</button>';
+      html+='</div>';
+    }
+    html+='</div>';
+    return html;
+  }).join('');
+}
+
+function renderHomeWomen(){
+  const el=document.getElementById('ht-women');
+  if(!el)return;
+  el.style.display='block';
+  el.innerHTML='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:.4rem;padding-bottom:1rem">'
+    +WOMEN_SEEDS.map(w=>{
+      const ph=getPhase(w.cycleDay);
+      return`<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:.5rem;text-align:center">
+        <div style="font-size:1.1rem">${ph.emoji}</div>
+        <div style="font-size:.72rem;font-weight:700;color:var(--txt)">${w.name}</div>
+        <div style="font-size:.55rem;color:var(--txt3)">${w.age}歳 ${w.blood}</div>
+        <div style="font-size:.55rem;color:var(--txt3)">${w.mbti}</div>
+        <div style="height:3px;background:var(--border);border-radius:2px;margin:.2rem 0;overflow:hidden">
+          <div style="height:100%;width:${ph.e*10}%;background:var(--rose);border-radius:2px"></div></div>
+      </div>`;
+    }).join('')
+    +'</div>';
+}
+
+function renderRanking(){
+  const el=document.getElementById('ht-ranking');
+  if(!el)return;
+  el.style.display='block';
+  el.innerHTML='<div style="text-align:center;padding:2rem;color:var(--txt3);font-size:.72rem">🏆 ランキング機能は近日公開予定</div>';
+}
+
+// ── ルーム作成 ──
+let newRoomNums={members:2,women:2};
+let newRoomMode='nanpa';
+
+window.openCreateModal=()=>{
+  document.getElementById('create-modal').classList.add('open');
+};
+window.closeCreateModal=()=>{
+  document.getElementById('create-modal').classList.remove('open');
+};
+window.selectRoomMode=(mode,btn)=>{
+  newRoomMode=mode;
+  document.querySelectorAll('.sel-btn').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+};
+window.changeNum=(key,delta)=>{
+  if(key==='members'){
+    newRoomNums.members=Math.max(1,Math.min(6,newRoomNums.members+delta));
+    document.getElementById('num-members').textContent=newRoomNums.members;
+    // デフォルト：女性=参加人数
+    newRoomNums.women=newRoomNums.members;
+    document.getElementById('num-women').textContent=newRoomNums.women;
+  }else{
+    newRoomNums.women=Math.max(1,Math.min(10,newRoomNums.women+delta));
+    document.getElementById('num-women').textContent=newRoomNums.women;
+  }
+};
+
+window.createRoom=async()=>{
+  if(!A.user)return;
+  const name=document.getElementById('new-room-name').value.trim();
+  const situation=document.getElementById('new-room-situation').value;
+  if(!name){alert('ルーム名を入力してください');return;}
+  // 女性をランダムアサイン
+  const shuffled=[...WOMEN_SEEDS].sort(()=>Math.random()-.5);
+  const assigned=shuffled.slice(0,newRoomNums.women).map(w=>w.id);
+  try{
+    const roomRef=await addDoc(collection(db,'nanpa_rooms'),{
+      name,mode:newRoomMode,situation,
+      maxMembers:newRoomNums.members,
+      womenCount:newRoomNums.women,
+      womenAssigned:assigned,
+      createdBy:A.user.uid,
+      createdAt:serverTimestamp(),
+      lastAt:serverTimestamp(),
+      lastMessage:'',
+      memberCount:1,
+    });
+    // 作成者をメンバーに追加
+    await setDoc(doc(db,'nanpa_rooms',roomRef.id,'members',A.user.uid),{
+      uid:A.user.uid,
+      name:A.userDoc?.name||A.user.displayName||'Anonymous',
+      joinedAt:serverTimestamp(),
+    });
+    closeCreateModal();
+    openRoom(roomRef.id);
+  }catch(e){alert('作成エラー: '+e.message);}
+};
+
+// ── ルーム入室 ──
+window.openRoom=async(roomId)=>{
+  const snap=await getDoc(doc(db,'nanpa_rooms',roomId));
+  if(!snap.exists())return;
+  A.currentRoom={id:roomId,...snap.data()};
+  A.womenAssigned=(A.currentRoom.womenAssigned||[])
+    .map(id=>WOMEN_SEEDS.find(w=>w.id===id)).filter(Boolean);
+
+  // メンバー追加
+  await setDoc(doc(db,'nanpa_rooms',roomId,'members',A.user.uid),{
+    uid:A.user.uid,
+    name:A.userDoc?.name||A.user.displayName||'Anonymous',
+    joinedAt:serverTimestamp(),
+  });
+  // memberCount更新
+  const mSnap=await getDocs(collection(db,'nanpa_rooms',roomId,'members'));
+  await updateDoc(doc(db,'nanpa_rooms',roomId),{memberCount:mSnap.size});
+
+  showScreen('chat-screen');
+  initChatScreen(roomId);
+};
+
+function initChatScreen(roomId){
+  const r=A.currentRoom;
+  document.getElementById('chat-room-name').textContent=r.name||'ルーム';
+  document.getElementById('chat-room-meta').textContent=
+    `${r.situation||''} • ${r.mode||'nanpa'}モード`;
+
+  // 女性バー
+  const wbar=document.getElementById('women-bar');
+  const wColors=['#be123c','#7c3aed','#0f766e','#d97706','#3730a3'];
+  wbar.innerHTML=A.womenAssigned.map((w,i)=>{
+    const ph=getPhase(w.cycleDay);
+    const col=wColors[i%wColors.length];
+    return'<div class="woman-chip" style="border-color:'+col+'40;background:'+col+'10;align-items:center;gap:.3rem;display:flex;flex-direction:column">'
+      +getAvatarImgStr(w.name,32,false)
+      +'<div class="woman-chip-name" style="color:'+col+'">'+w.name+'</div>'
+      +'<div class="woman-chip-status">'+w.age+'歳 '+ph.label+'</div></div>';
+  }).join('');
+
+  // メッセージリスナー
+  if(A.msgsUnsub)A.msgsUnsub();
+  const q=query(
+    collection(db,'nanpa_rooms',roomId,'messages'),
+    orderBy('createdAt','asc'),limit(100)
+  );
+  const msgArea=document.getElementById('msg-area');
+  msgArea.innerHTML='';
+  A.msgsUnsub=onSnapshot(q,snap=>{
+    snap.docChanges().forEach(change=>{
+      if(change.type==='added'){
+        const d={id:change.doc.id,...change.doc.data()};
+        renderMsg(d);
+      }
+    });
+  });
+
+  // Typingリスナー（なあシステム）
+  if(A.typingUnsub)A.typingUnsub();
+  A.typingUnsub=onSnapshot(
+    collection(db,'nanpa_rooms',roomId,'typing'),
+    snap=>{
+      const typingBar=document.getElementById('typing-bar');
+      const others=snap.docs
+        .filter(d=>d.id!==A.user.uid&&d.data().text)
+        .map(d=>d.data());
+      if(others.length===0){typingBar.innerHTML='';return;}
+      typingBar.innerHTML=others.map(t=>{
+        const txt=t.text||'';
+        const remaining=Math.max(0,20-txt.length);
+        var typingStr='<span class="typing-user">'+t.name+'</span>さんが入力中';
+        if(txt.startsWith('なあ')){typingStr+=' — あと<strong>'+remaining+'</strong>文字';}
+        return typingStr;
+      }).join(' / ');
+    }
+  );
+
+  // メンバーリスナー
+  if(A.membersUnsub)A.membersUnsub();
+  A.membersUnsub=onSnapshot(
+    collection(db,'nanpa_rooms',roomId,'members'),
+    snap=>{
+      const members=snap.docs.map(d=>d.data());
+      document.getElementById('chat-room-meta').textContent=
+        `${r.situation||''} • 参加${members.length}人 • 女性AI${A.womenAssigned.length}人`;
+      const bar=document.getElementById('chat-members-bar');
+      bar.innerHTML=members.slice(0,4).map(m=>{
+        const c=['#be123c','#7c3aed','#0f766e','#d97706'][members.indexOf(m)%4];
+        return`<div class="avatar" style="background:${c}">${(m.name||'?')[0]}</div>`;
+      }).join('');
+    }
+  );
+
+  // システムメッセージ
+  const modeLabel={nanpa:'ナンパ',date:'デート練習',line:'LINE練習',group:'グループナンパ'}[r.mode]||'ナンパ';
+  addSystemMsg(`🏮 ${r.name} - ${modeLabel}モード開始！女性AI: ${A.womenAssigned.map(w=>w.name).join('、')}`);
+}
+
+function renderMsg(d){
+  const area=document.getElementById('msg-area');
+  if(!area)return;
+  const isMe=d.uid===A.user.uid;
+  const isWoman=d.type==='woman';
+  const isSystem=d.type==='system'||d.type==='coach';
+  const isCoach=d.type==='coach';
+  const row=document.createElement('div');
+  const safe=(d.text||'').split('&').join('&amp;').split('<').join('&lt;').split('>').join('&gt;').split('\n').join('<br>')
+  if(isSystem){
+    row.className='msg-row system';
+    row.innerHTML=`<div class="bubble ${isCoach?'bubble-coach':'bubble-system'}">${safe}</div>`;
+  }else if(isWoman){
+    const w=A.womenAssigned.find(w=>w.name===d.womanName)||A.womenAssigned[0];
+    const ph=w?getPhase(w.cycleDay):{emoji:'👩'};
+    row.className='msg-row woman';
+    const wAColors=['#be123c','#7c3aed','#0f766e','#d97706','#3730a3'];
+    const wIdx=A.womenAssigned.findIndex(function(w){return w.name===d.womanName;});
+    const wCol=wAColors[(wIdx>=0?wIdx:0)%wAColors.length];
+    row.innerHTML=getAvatarImgStr(d.womanName||'女性',40,true)
+      +'<div class="msg-content">'
+      +'<div class="msg-name" style="color:'+wCol+';font-weight:700;font-size:.6rem;margin-bottom:.1rem">'+( d.womanName||'女性')+'</div>'
+      +'<div class="bubble bubble-woman">'+safe+'</div>'
+      +'<div class="msg-time">'+formatTime(d.createdAt)+'</div>'
+      +'</div>';
+    setTimeout(function(){
+      const mouth=row.querySelector('.mouth');
+      if(mouth)mouth.classList.remove('talking');
+    },2000);
+  }else if(isMe){
+    row.className='msg-row me';
+    row.innerHTML=`<div class="msg-content">
+      <div class="bubble bubble-me">${safe}</div>
+      <div class="msg-time" style="text-align:right">${formatTime(d.createdAt)}</div>
+    </div>`;
+  }else{
+    const c=['#be123c','#7c3aed','#0f766e','#d97706'][d.uid?.charCodeAt(0)%4||0];
+    row.className='msg-row other';
+    row.innerHTML=`<div class="msg-avatar" style="background:${c}30;color:${c}">${(d.name||'?')[0]}</div>
+      <div class="msg-content">
+        <div class="msg-name">${d.name||'メンバー'}</div>
+        <div class="bubble bubble-member">${safe}</div>
+        <div class="msg-time">${formatTime(d.createdAt)}</div>
+      </div>`;
+  }
+  area.appendChild(row);
+  area.scrollTop=area.scrollHeight;
+}
+
+function formatTime(ts){
+  if(!ts)return'';
+  const d=ts.toDate?ts.toDate():new Date();
+  return d.getHours()+':'+String(d.getMinutes()).padStart(2,'0');
+}
+
+function addSystemMsg(text){
+  const area=document.getElementById('msg-area');
+  if(!area)return;
+  const row=document.createElement('div');
+  row.className='msg-row system';
+  row.innerHTML=`<div class="bubble bubble-system">${text}</div>`;
+  area.appendChild(row);
+  area.scrollTop=area.scrollHeight;
+}
+
+// ── なあシステム（入力中テキスト共有） ──
+window.onChatInput=async(el)=>{
+  el.style.height='auto';
+  el.style.height=Math.min(el.scrollHeight,100)+'px';
+  document.getElementById('send-btn').disabled=el.value.trim()==='';
+  if(!A.currentRoom||!A.user)return;
+  const text=el.value;
+  // Firestoreにtyping状態を保存
+  clearTimeout(A.typingTimer);
+  await setDoc(doc(db,'nanpa_rooms',A.currentRoom.id,'typing',A.user.uid),{
+    uid:A.user.uid,
+    name:A.userDoc?.name||A.user.displayName||'?',
+    text:text,
+    ts:serverTimestamp(),
+  });
+  // 3秒後にクリア
+  A.typingTimer=setTimeout(async()=>{
+    await deleteDoc(doc(db,'nanpa_rooms',A.currentRoom.id,'typing',A.user.uid));
+  },3000);
+};
+
+// ── メッセージ送信 ──
+window.sendMsg=async()=>{
+  if(A.sending||!A.currentRoom||!A.user)return;
+  const inp=document.getElementById('chat-inp');
+  const text=inp.value.trim();
+  if(!text)return;
+  A.sending=true;
+  document.getElementById('send-btn').disabled=true;
+  inp.value='';inp.style.height='auto';
+
+  // Typing状態クリア
+  clearTimeout(A.typingTimer);
+  await deleteDoc(doc(db,'nanpa_rooms',A.currentRoom.id,'typing',A.user.uid)).catch(()=>{});
+
+  try{
+    const roomId=A.currentRoom.id;
+    // ユーザーメッセージ保存
+    await addDoc(collection(db,'nanpa_rooms',roomId,'messages'),{
+      uid:A.user.uid,
+      name:A.userDoc?.name||A.user.displayName||'Anonymous',
+      text,type:'user',
+      createdAt:serverTimestamp(),
+    });
+    // lastMessage更新
+    await updateDoc(doc(db,'nanpa_rooms',roomId),{
+      lastMessage:text.slice(0,30),
+      lastAt:serverTimestamp(),
+    });
+
+    // 女性AIが返答
+    const targetWoman=A.womenAssigned[Math.floor(Math.random()*A.womenAssigned.length)];
+    if(targetWoman){
+      const ph=getPhase(targetWoman.cycleDay);
+      const system=`あなたは${targetWoman.name}（${targetWoman.age}歳、${targetWoman.blood}型、MBTI:${targetWoman.mbti}、${targetWoman.star}）という女性AIです。
+今日の状態：${ph.label}（周期${targetWoman.cycleDay}日目）。
+シチュエーション：${A.currentRoom.situation||'ナンパ'}。
+自然にリアルな女性として返答してください。80字以内で。
+返答後に【コーチ:このアプローチへの評価と次の一手を30字で】を添えてください。`;
+
+      const reply=await callAI(system,text,400);
+      const parts=reply.split('【コーチ');
+      const womanReply=parts[0].trim();
+      const coach=parts[1]?parts[1].replace('：','').replace(':','').replace('】','').trim():'';
+
+      await addDoc(collection(db,'nanpa_rooms',roomId,'messages'),{
+        uid:'woman_'+targetWoman.id,
+        name:targetWoman.name,
+        womanName:targetWoman.name,
+        text:womanReply,type:'woman',
+        createdAt:serverTimestamp(),
+      });
+      if(coach){
+        await addDoc(collection(db,'nanpa_rooms',roomId,'messages'),{
+          uid:'coach',name:'AIコーチ',
+          text:'⚡ '+coach,type:'coach',
+          createdAt:serverTimestamp(),
+        });
+      }
+    }
+  }catch(e){console.error(e);}
+  A.sending=false;
+  document.getElementById('send-btn').disabled=false;
+};
+
+// ── ルームを出る ──
+window.deleteRoom=async(roomId,event)=>{
+  event.stopPropagation();
+  if(!confirm('このルームを削除しますか？'))return;
+  try{
+    // messagesサブコレクション削除
+    const msgs=await getDocs(collection(db,'nanpa_rooms',roomId,'messages'));
+    for(const m of msgs.docs){
+      await deleteDoc(doc(db,'nanpa_rooms',roomId,'messages',m.id));
+    }
+    // membersサブコレクション削除
+    const mems=await getDocs(collection(db,'nanpa_rooms',roomId,'members'));
+    for(const m of mems.docs){
+      await deleteDoc(doc(db,'nanpa_rooms',roomId,'members',m.id));
+    }
+    // typingサブコレクション削除
+    const typs=await getDocs(collection(db,'nanpa_rooms',roomId,'typing'));
+    for(const t of typs.docs){
+      await deleteDoc(doc(db,'nanpa_rooms',roomId,'typing',t.id));
+    }
+    // ルーム本体削除
+    await deleteDoc(doc(db,'nanpa_rooms',roomId));
+    // リストから即座に除去
+    A.rooms=A.rooms.filter(r=>r.id!==roomId);
+    renderRoomList();
+  }catch(e){alert('削除エラー: '+e.message);}
+};
+
+window.leaveChat=async()=>{
+  if(A.msgsUnsub)A.msgsUnsub();
+  if(A.membersUnsub)A.membersUnsub();
+  if(A.typingUnsub)A.typingUnsub();
+  if(A.currentRoom&&A.user){
+    await deleteDoc(doc(db,'nanpa_rooms',A.currentRoom.id,'typing',A.user.uid)).catch(()=>{});
+  }
+  A.currentRoom=null;
+  A.womenAssigned=[];
+  showScreen('home-screen');
+};
+
+// スプラッシュ
+setTimeout(()=>{
+  if(!A.user)showScreen('auth-screen');
+},1500);
+</script>
+</body>
+</html>
